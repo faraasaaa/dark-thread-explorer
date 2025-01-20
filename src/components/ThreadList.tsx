@@ -2,8 +2,7 @@ import { Thread } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Heart, MessageCircle } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Textarea } from "./ui/textarea";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "./ui/use-toast";
 
 interface ThreadListProps {
@@ -12,11 +11,11 @@ interface ThreadListProps {
 
 const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
   const [threads, setThreads] = useState(initialThreads);
-  const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
-  const [newComment, setNewComment] = useState("");
+  const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLike = (threadId: string) => {
+  const handleLike = (threadId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation when clicking like button
     setThreads(prevThreads =>
       prevThreads.map(thread =>
         thread.id === threadId
@@ -34,38 +33,14 @@ const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
     );
   };
 
-  const handleAddComment = () => {
-    if (!selectedThread || !newComment.trim()) return;
-
-    const newCommentObj = {
-      id: `c${Date.now()}`,
-      content: newComment,
-      author: "Current User",
-      timestamp: new Date().toISOString(),
-    };
-
-    setThreads(prevThreads =>
-      prevThreads.map(thread =>
-        thread.id === selectedThread.id
-          ? {
-              ...thread,
-              comments: [...thread.comments, newCommentObj]
-            }
-          : thread
-      )
-    );
-
-    setNewComment("");
-    toast({
-      title: "Comment added",
-      description: "Your comment has been added successfully.",
-    });
-  };
-
   return (
     <div className="space-y-4">
       {threads.map((thread) => (
-        <div key={thread.id} className="glass-card p-4 rounded-lg hover-effect">
+        <div 
+          key={thread.id} 
+          className="glass-card p-4 rounded-lg hover-effect cursor-pointer"
+          onClick={() => navigate(`/thread/${thread.id}`)}
+        >
           <div className="flex flex-col gap-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -86,7 +61,7 @@ const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
                   className={`text-red-400 ${
                     thread.likedBy.includes('current-user') ? 'bg-red-100/10' : ''
                   }`}
-                  onClick={() => handleLike(thread.id)}
+                  onClick={(e) => handleLike(thread.id, e)}
                 >
                   <Heart
                     className={`h-5 w-5 ${
@@ -98,7 +73,10 @@ const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setSelectedThread(thread)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/thread/${thread.id}`);
+                  }}
                 >
                   <MessageCircle className="h-5 w-5" />
                   <span className="ml-2">{thread.comments.length}</span>
@@ -108,30 +86,6 @@ const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
           </div>
         </div>
       ))}
-
-      <Dialog open={!!selectedThread} onOpenChange={() => setSelectedThread(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Thread Comments</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 space-y-4">
-            {selectedThread?.comments.map((comment) => (
-              <div key={comment.id} className="p-3 bg-secondary rounded-lg">
-                <div className="font-semibold">{comment.author}</div>
-                <p className="text-sm text-gray-400">{comment.content}</p>
-              </div>
-            ))}
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Write a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <Button onClick={handleAddComment}>Add Comment</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
