@@ -6,7 +6,7 @@ export interface Thread {
   timestamp: string;
   imageUrl?: string;
   comments: Comment[];
-  likedBy: string[]; // Array of user IDs who liked the thread
+  likedBy: string[];
 }
 
 export interface Comment {
@@ -14,4 +14,16 @@ export interface Comment {
   content: string;
   author: string;
   timestamp: string;
+  likes?: number;
+  likedBy?: string[];
+  replies?: Reply[];
+}
+
+export interface Reply {
+  id: string;
+  content: string;
+  author: string;
+  timestamp: string;
+  likes?: number;
+  likedBy?: string[];
 }
