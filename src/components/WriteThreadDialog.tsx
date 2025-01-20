@@ -29,6 +29,8 @@ const WriteThreadDialog = ({ threads, setThreads }: WriteThreadDialogProps) => {
         author: "You",
         likes: 0,
         timestamp: new Date().toISOString(),
+        comments: [], // Add the required comments array
+        likedBy: [], // Add the required likedBy array
       };
       setThreads([newThread, ...threads]);
       setContent("");
