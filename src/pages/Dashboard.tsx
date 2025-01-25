@@ -1,20 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ThreadList from "@/components/ThreadList";
 import WriteThreadDialog from "@/components/WriteThreadDialog";
-import { mockThreads } from "@/lib/mock-data";
+import dbService from "@/lib/db.service";
+import { useToast } from "@/components/ui/use-toast";
+import { Thread } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [threads, setThreads] = useState(mockThreads);
-  const totalLikes = threads.reduce((acc, thread) => acc + thread.likes, 0);
+  const { toast } = useToast();
+
+  const { data: threads = [], isLoading, error } = useQuery({
+    queryKey: ['threads'],
+    queryFn: () => dbService.getThreads(),
+  });
 
   const filteredThreads = threads.filter(thread => 
     thread.content.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalLikes = threads.reduce((acc, thread) => acc + thread.likes, 0);
+
+  if (isLoading) {
+    return <div className="min-h-screen p-4 flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen p-4 flex items-center justify-center">Error loading threads</div>;
+  }
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -31,7 +48,7 @@ const Dashboard = () => {
           </Button>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <WriteThreadDialog threads={threads} setThreads={setThreads} />
+          <WriteThreadDialog threads={threads} setThreads={() => {}} />
           <div className="glass-card px-4 py-2 rounded-lg">
             <span className="text-sm text-gray-400">Total Likes:</span>
             <span className="ml-2 font-bold">{totalLikes}</span>

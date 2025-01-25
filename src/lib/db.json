@@ -1,0 +1,31 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "demo@example.com",
+      "password": "hashed_password_123",
+      "name": "Demo User"
+    }
+  ],
+  "threads": [
+    {
+      "id": "1",
+      "content": "Just launched my new project! 🚀 Super excited to share it with everyone!",
+      "author": "Sarah Johnson",
+      "likes": 42,
+      "timestamp": "2024-02-20T12:00:00.000Z",
+      "likedBy": [],
+      "comments": [
+        {
+          "id": "c1",
+          "content": "This looks amazing! Can't wait to try it out.",
+          "author": "Mike Chen",
+          "timestamp": "2024-02-20T12:30:00.000Z",
+          "likes": 0,
+          "likedBy": [],
+          "replies": []
+        }
+      ]
+    }
+  ]
+}

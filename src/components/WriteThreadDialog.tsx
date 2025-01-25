@@ -10,31 +10,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Thread } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
+import dbService from "@/lib/db.service";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WriteThreadDialogProps {
   threads: Thread[];
   setThreads: (threads: Thread[]) => void;
 }
 
-const WriteThreadDialog = ({ threads, setThreads }: WriteThreadDialogProps) => {
+const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
   const [content, setContent] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (content.trim()) {
-      const newThread: Thread = {
-        id: Date.now().toString(),
+      const newThread = await dbService.createThread({
         content,
         author: "You",
         likes: 0,
         timestamp: new Date().toISOString(),
-        comments: [], // Add the required comments array
-        likedBy: [], // Add the required likedBy array
-      };
-      setThreads([newThread, ...threads]);
+        comments: [],
+        likedBy: [],
+      });
+
       setContent("");
       setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['threads'] });
+      
       toast({
         title: "Thread posted!",
         description: "Your thread has been published successfully.",

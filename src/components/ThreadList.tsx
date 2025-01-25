@@ -1,36 +1,32 @@
 import { Thread } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Heart, MessageCircle } from "lucide-react";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./ui/use-toast";
+import dbService from "@/lib/db.service";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ThreadListProps {
   threads: Thread[];
 }
 
-const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
-  const [threads, setThreads] = useState(initialThreads);
+const ThreadList = ({ threads }: ThreadListProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleLike = (threadId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigation when clicking like button
-    setThreads(prevThreads =>
-      prevThreads.map(thread =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              likes: thread.likedBy.includes('current-user')
-                ? thread.likes - 1
-                : thread.likes + 1,
-              likedBy: thread.likedBy.includes('current-user')
-                ? thread.likedBy.filter(id => id !== 'current-user')
-                : [...thread.likedBy, 'current-user']
-            }
-          : thread
-      )
-    );
+  const handleLike = async (threadId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await dbService.likeThread(threadId, 'current-user');
+      queryClient.invalidateQueries({ queryKey: ['threads'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like the thread",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -38,7 +34,7 @@ const ThreadList = ({ threads: initialThreads }: ThreadListProps) => {
       {threads.map((thread) => (
         <div 
           key={thread.id} 
-          className="glass-card p-4 rounded-lg hover-effect cursor-pointer"
+          className="glass-card p-4 rounded-lg hover:bg-secondary/10 transition-colors cursor-pointer"
           onClick={() => navigate(`/thread/${thread.id}`)}
         >
           <div className="flex flex-col gap-4">
