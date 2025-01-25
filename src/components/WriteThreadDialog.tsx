@@ -21,12 +21,23 @@ interface WriteThreadDialogProps {
 const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
   const [content, setContent] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
-    if (content.trim()) {
-      const newThread = await dbService.createThread({
+    if (!content.trim()) {
+      toast({
+        title: "Error",
+        description: "Please write something before posting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await dbService.createThread({
         content,
         author: "You",
         likes: 0,
@@ -40,16 +51,24 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
       queryClient.invalidateQueries({ queryKey: ['threads'] });
       
       toast({
-        title: "Thread posted!",
-        description: "Your thread has been published successfully.",
+        title: "Success!",
+        description: "Your thread has been posted.",
       });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to post thread. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>Write Thread</Button>
+        <Button className="hover-effect">Write Thread</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -60,10 +79,14 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
             placeholder="What's on your mind?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[100px]"
+            className="min-h-[100px] resize-none"
           />
-          <Button onClick={handleSubmit} className="w-full">
-            Post Thread
+          <Button 
+            onClick={handleSubmit} 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? "Posting..." : "Post Thread"}
           </Button>
         </div>
       </DialogContent>
