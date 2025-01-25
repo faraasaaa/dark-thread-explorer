@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const { toast } = useToast();
 
-  const { data: threads = [], isLoading, error } = useQuery({
+  const { data: threads = [], isLoading, error, refetch } = useQuery({
     queryKey: ['threads'],
     queryFn: () => dbService.getThreads(),
   });
@@ -48,7 +48,7 @@ const Dashboard = () => {
           </Button>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <WriteThreadDialog threads={threads} setThreads={() => {}} />
+          <WriteThreadDialog onThreadCreated={() => refetch()} />
           <div className="glass-card px-4 py-2 rounded-lg">
             <span className="text-sm text-gray-400">Total Likes:</span>
             <span className="ml-2 font-bold">{totalLikes}</span>

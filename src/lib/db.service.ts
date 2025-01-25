@@ -1,4 +1,4 @@
-import { Thread, Comment, User } from './types';
+import { Thread, Comment, User, Reply } from './types';
 
 class DatabaseService {
   private data: {
@@ -10,7 +10,6 @@ class DatabaseService {
     this.loadFromLocalStorage();
   }
 
-  // User operations
   async login(email: string, password: string): Promise<User | null> {
     const user = this.data.users.find(
       (u) => u.email === email && u.password === password
@@ -100,7 +99,49 @@ class DatabaseService {
     return thread;
   }
 
-  // Helper methods
+  async likeComment(threadId: string, commentId: string, userId: string): Promise<Thread | null> {
+    const thread = this.data.threads.find((t) => t.id === threadId);
+    if (!thread) return null;
+
+    const comment = thread.comments.find((c) => c.id === commentId);
+    if (!comment) return null;
+
+    if (!comment.likedBy) comment.likedBy = [];
+    if (!comment.likes) comment.likes = 0;
+
+    if (comment.likedBy.includes(userId)) {
+      comment.likedBy = comment.likedBy.filter((id) => id !== userId);
+      comment.likes--;
+    } else {
+      comment.likedBy.push(userId);
+      comment.likes++;
+    }
+
+    this.saveToLocalStorage();
+    return thread;
+  }
+
+  async addReplyToComment(threadId: string, commentId: string, reply: Omit<Reply, 'id'>): Promise<Thread | null> {
+    const thread = this.data.threads.find((t) => t.id === threadId);
+    if (!thread) return null;
+
+    const comment = thread.comments.find((c) => c.id === commentId);
+    if (!comment) return null;
+
+    if (!comment.replies) comment.replies = [];
+
+    const newReply: Reply = {
+      ...reply,
+      id: `r${Date.now()}`,
+      likes: 0,
+      likedBy: [],
+    };
+
+    comment.replies.push(newReply);
+    this.saveToLocalStorage();
+    return thread;
+  }
+
   private saveToLocalStorage(): void {
     localStorage.setItem('threadApp', JSON.stringify(this.data));
   }
