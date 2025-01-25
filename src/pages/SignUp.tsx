@@ -3,25 +3,34 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import dbService from "@/lib/db.service";
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - in real app, this would call an API
-    if (formData.name && formData.email && formData.password) {
-      toast({
-        title: "Account created!",
-        description: "Welcome to Threads.",
-      });
-      navigate("/dashboard");
+    if (formData.username && formData.email && formData.password) {
+      try {
+        await dbService.signup(formData.email, formData.password, formData.username);
+        toast({
+          title: "Account created!",
+          description: "Welcome to Threads.",
+        });
+        navigate("/dashboard");
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create account. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -31,11 +40,11 @@ const SignUp = () => {
         <h1 className="text-3xl font-bold text-center">Create Account</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm">Name</label>
+            <label className="text-sm">Username</label>
             <Input
-              placeholder="Enter your name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Choose a username"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             />
           </div>
           <div className="space-y-2">

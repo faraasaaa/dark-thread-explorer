@@ -8,16 +8,33 @@ import dbService from "@/lib/db.service";
 import { useToast } from "@/components/ui/use-toast";
 import { Thread } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
+import { LogOut } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const { toast } = useToast();
 
+  useEffect(() => {
+    const currentUser = dbService.getCurrentUser();
+    if (!currentUser) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
   const { data: threads = [], isLoading, error, refetch } = useQuery({
     queryKey: ['threads'],
     queryFn: () => dbService.getThreads(),
   });
+
+  const handleLogout = () => {
+    dbService.logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/login");
+  };
 
   const filteredThreads = threads.filter(thread => 
     thread.content.toLowerCase().includes(search.toLowerCase())
@@ -49,6 +66,14 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <WriteThreadDialog onThreadCreated={() => refetch()} />
+          <Button 
+            variant="outline" 
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
           <div className="glass-card px-4 py-2 rounded-lg">
             <span className="text-sm text-gray-400">Total Likes:</span>
             <span className="ml-2 font-bold">{totalLikes}</span>

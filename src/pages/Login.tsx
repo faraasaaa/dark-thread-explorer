@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import dbService from "@/lib/db.service";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,15 +13,31 @@ const Login = () => {
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in real app, this would call an API
     if (formData.email && formData.password) {
-      toast({
-        title: "Success!",
-        description: "You have been logged in.",
-      });
-      navigate("/dashboard");
+      try {
+        const user = await dbService.login(formData.email, formData.password);
+        if (user) {
+          toast({
+            title: "Success!",
+            description: "You have been logged in.",
+          });
+          navigate("/dashboard");
+        } else {
+          toast({
+            title: "Error",
+            description: "Invalid credentials.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Login failed. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
