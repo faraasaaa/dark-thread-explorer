@@ -15,7 +15,11 @@ import dbService from "@/lib/db.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus } from "lucide-react";
 
-const WriteThreadDialog = () => {
+interface WriteThreadDialogProps {
+  onThreadCreated?: () => void;
+}
+
+const WriteThreadDialog = ({ onThreadCreated }: WriteThreadDialogProps) => {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -71,6 +75,7 @@ const WriteThreadDialog = () => {
       setImageUrl("");
       setIsOpen(false);
       queryClient.invalidateQueries({ queryKey: ['threads'] });
+      onThreadCreated?.();
       
       toast({
         title: "Success!",
