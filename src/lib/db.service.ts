@@ -44,7 +44,9 @@ class DatabaseService {
   }
 
   async getThreadById(id: string): Promise<Thread | null> {
-    return this.data.threads.find((t) => t.id === id) || null;
+    const thread = this.data.threads.find((t) => t.id === id);
+    if (!thread) return null;
+    return thread;
   }
 
   async createThread(thread: Omit<Thread, 'id'>): Promise<Thread> {
@@ -148,6 +150,12 @@ class DatabaseService {
   // Initialize data from localStorage if available
   init(): void {
     this.loadFromLocalStorage();
+    if (!this.data.threads) {
+      this.data.threads = [];
+    }
+    if (!this.data.users) {
+      this.data.users = [];
+    }
   }
 }
 

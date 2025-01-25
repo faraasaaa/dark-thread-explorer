@@ -37,15 +37,16 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
 
     setIsLoading(true);
     try {
-      await dbService.createThread({
+      const newThread = {
         content,
         author: "You",
         likes: 0,
         timestamp: new Date().toISOString(),
         comments: [],
         likedBy: [],
-      });
+      };
 
+      await dbService.createThread(newThread);
       setContent("");
       setIsOpen(false);
       queryClient.invalidateQueries({ queryKey: ['threads'] });

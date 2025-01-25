@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { mockThreads } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Heart, ArrowLeft, MessageCircle } from "lucide-react";
 import { Comment } from "@/lib/types";
+import dbService from "@/lib/db.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const ThreadDetail = () => {
   const { id } = useParams();
@@ -14,10 +15,18 @@ const ThreadDetail = () => {
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const queryClient = useQueryClient();
   
-  const thread = mockThreads.find(t => t.id === id);
+  const { data: thread, isLoading, error } = useQuery({
+    queryKey: ['thread', id],
+    queryFn: () => dbService.getThreadById(id || ''),
+  });
   
-  if (!thread) {
+  if (isLoading) {
+    return <div className="min-h-screen p-4 flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error || !thread) {
     return (
       <div className="min-h-screen p-4 flex flex-col items-center justify-center">
         <h2 className="text-xl font-semibold mb-4">Thread not found</h2>
@@ -26,7 +35,7 @@ const ThreadDetail = () => {
     );
   }
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim()) {
       toast({
         title: "Error",
@@ -36,54 +45,60 @@ const ThreadDetail = () => {
       return;
     }
 
-    const newCommentObj: Comment = {
-      id: `c${Date.now()}`,
-      content: newComment,
-      author: "Current User",
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      likedBy: [],
-      replies: [],
-    };
-
-    thread.comments.push(newCommentObj);
-    setNewComment("");
-    toast({
-      title: "Success",
-      description: "Comment added successfully",
-    });
-  };
-
-  const handleLike = () => {
-    if (thread.likedBy.includes('current-user')) {
-      thread.likedBy = thread.likedBy.filter(id => id !== 'current-user');
-      thread.likes--;
-    } else {
-      thread.likedBy.push('current-user');
-      thread.likes++;
-    }
-    toast({
-      description: thread.likedBy.includes('current-user') 
-        ? "Added to your likes" 
-        : "Removed from your likes",
-    });
-  };
-
-  const handleCommentLike = (commentId: string) => {
-    const comment = thread.comments.find(c => c.id === commentId);
-    if (!comment) return;
-
-    if (comment.likedBy?.includes('current-user')) {
-      comment.likedBy = comment.likedBy.filter(id => id !== 'current-user');
-      comment.likes--;
-    } else {
-      if (!comment.likedBy) comment.likedBy = [];
-      comment.likedBy.push('current-user');
-      comment.likes++;
+    try {
+      await dbService.addComment(thread.id, {
+        content: newComment,
+        author: "Current User",
+        timestamp: new Date().toISOString(),
+      });
+      
+      setNewComment("");
+      queryClient.invalidateQueries({ queryKey: ['thread', id] });
+      toast({
+        title: "Success",
+        description: "Comment added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleReply = (commentId: string) => {
+  const handleLike = async () => {
+    try {
+      await dbService.likeThread(thread.id, 'current-user');
+      queryClient.invalidateQueries({ queryKey: ['thread', id] });
+      toast({
+        description: thread.likedBy.includes('current-user') 
+          ? "Removed from your likes" 
+          : "Added to your likes",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update like",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCommentLike = async (commentId: string) => {
+    try {
+      await dbService.likeComment(thread.id, commentId, 'current-user');
+      queryClient.invalidateQueries({ queryKey: ['thread', id] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReply = async (commentId: string) => {
     if (!replyContent.trim()) {
       toast({
         title: "Error",
@@ -93,29 +108,27 @@ const ThreadDetail = () => {
       return;
     }
 
-    const comment = thread.comments.find(c => c.id === commentId);
-    if (!comment) return;
-
-    const newReply = {
-      id: `r${Date.now()}`,
-      content: replyContent,
-      author: "Current User",
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      likedBy: [],
-    };
-
-    if (!comment.replies) {
-      comment.replies = [];
+    try {
+      await dbService.addReplyToComment(thread.id, commentId, {
+        content: replyContent,
+        author: "Current User",
+        timestamp: new Date().toISOString(),
+      });
+      
+      setReplyContent("");
+      setReplyingTo(null);
+      queryClient.invalidateQueries({ queryKey: ['thread', id] });
+      toast({
+        title: "Success",
+        description: "Reply added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add reply",
+        variant: "destructive",
+      });
     }
-    
-    comment.replies.push(newReply);
-    setReplyContent("");
-    setReplyingTo(null);
-    toast({
-      title: "Success",
-      description: "Reply added successfully",
-    });
   };
 
   return (
