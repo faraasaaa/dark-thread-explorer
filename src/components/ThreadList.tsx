@@ -14,11 +14,22 @@ const ThreadList = ({ threads }: ThreadListProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const currentUser = dbService.getCurrentUser();
 
   const handleLike = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Please log in to like threads",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await dbService.likeThread(threadId, 'current-user');
+      await dbService.likeThread(threadId, currentUser.id);
       queryClient.invalidateQueries({ queryKey: ['threads'] });
     } catch (error) {
       toast({
@@ -54,13 +65,13 @@ const ThreadList = ({ threads }: ThreadListProps) => {
                 variant="ghost"
                 size="sm"
                 className={`group flex items-center gap-2 hover:text-red-400 ${
-                  thread.likedBy.includes('current-user') ? 'text-red-400' : ''
+                  currentUser && thread.likedBy.includes(currentUser.id) ? 'text-red-400' : ''
                 }`}
                 onClick={(e) => handleLike(thread.id, e)}
               >
                 <Heart
                   className={`h-5 w-5 transition-all duration-200 group-hover:scale-110 ${
-                    thread.likedBy.includes('current-user') ? 'fill-current' : ''
+                    currentUser && thread.likedBy.includes(currentUser.id) ? 'fill-current' : ''
                   }`}
                 />
                 <span>{thread.likes}</span>

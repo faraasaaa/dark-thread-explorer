@@ -1,12 +1,4 @@
-import db from './db.json';
-import { Thread, Comment } from './types';
-
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-}
+import { Thread, Comment, User } from './types';
 
 class DatabaseService {
   private data: {
@@ -15,7 +7,7 @@ class DatabaseService {
   };
 
   constructor() {
-    this.data = db;
+    this.loadFromLocalStorage();
   }
 
   // User operations
@@ -23,30 +15,43 @@ class DatabaseService {
     const user = this.data.users.find(
       (u) => u.email === email && u.password === password
     );
+    if (user) {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
     return user || null;
   }
 
-  async signup(email: string, password: string, name: string): Promise<User> {
+  async signup(email: string, password: string, username: string): Promise<User> {
     const newUser: User = {
       id: Date.now().toString(),
       email,
       password,
-      name,
+      username,
     };
+    if (!this.data.users) this.data.users = [];
     this.data.users.push(newUser);
     this.saveToLocalStorage();
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
     return newUser;
+  }
+
+  getCurrentUser(): User | null {
+    const userStr = localStorage.getItem('currentUser');
+    return userStr ? JSON.parse(userStr) : null;
+  }
+
+  logout(): void {
+    localStorage.removeItem('currentUser');
   }
 
   // Thread operations
   async getThreads(): Promise<Thread[]> {
-    return this.data.threads;
+    return this.data.threads || [];
   }
 
   async getThreadById(id: string): Promise<Thread | null> {
     const thread = this.data.threads.find((t) => t.id === id);
-    if (!thread) return null;
-    return thread;
+    return thread || null;
   }
 
   async createThread(thread: Omit<Thread, 'id'>): Promise<Thread> {
@@ -54,6 +59,7 @@ class DatabaseService {
       ...thread,
       id: Date.now().toString(),
     };
+    if (!this.data.threads) this.data.threads = [];
     this.data.threads.unshift(newThread);
     this.saveToLocalStorage();
     return newThread;
@@ -63,6 +69,8 @@ class DatabaseService {
     const thread = this.data.threads.find((t) => t.id === threadId);
     if (!thread) return null;
 
+    if (!thread.likedBy) thread.likedBy = [];
+    
     if (thread.likedBy.includes(userId)) {
       thread.likedBy = thread.likedBy.filter((id) => id !== userId);
       thread.likes--;
@@ -85,52 +93,9 @@ class DatabaseService {
       likedBy: [],
       replies: [],
     };
+    
+    if (!thread.comments) thread.comments = [];
     thread.comments.push(newComment);
-    this.saveToLocalStorage();
-    return thread;
-  }
-
-  async likeComment(threadId: string, commentId: string, userId: string): Promise<Thread | null> {
-    const thread = this.data.threads.find((t) => t.id === threadId);
-    if (!thread) return null;
-
-    const comment = thread.comments.find((c) => c.id === commentId);
-    if (!comment) return null;
-
-    if (!comment.likedBy) comment.likedBy = [];
-    if (!comment.likes) comment.likes = 0;
-
-    if (comment.likedBy.includes(userId)) {
-      comment.likedBy = comment.likedBy.filter((id) => id !== userId);
-      comment.likes--;
-    } else {
-      comment.likedBy.push(userId);
-      comment.likes++;
-    }
-    this.saveToLocalStorage();
-    return thread;
-  }
-
-  async addReplyToComment(
-    threadId: string,
-    commentId: string,
-    reply: Omit<Comment, 'id'>
-  ): Promise<Thread | null> {
-    const thread = this.data.threads.find((t) => t.id === threadId);
-    if (!thread) return null;
-
-    const comment = thread.comments.find((c) => c.id === commentId);
-    if (!comment) return null;
-
-    if (!comment.replies) comment.replies = [];
-
-    const newReply: Comment = {
-      ...reply,
-      id: `r${Date.now()}`,
-      likes: 0,
-      likedBy: [],
-    };
-    comment.replies.push(newReply);
     this.saveToLocalStorage();
     return thread;
   }
@@ -144,22 +109,12 @@ class DatabaseService {
     const savedData = localStorage.getItem('threadApp');
     if (savedData) {
       this.data = JSON.parse(savedData);
-    }
-  }
-
-  // Initialize data from localStorage if available
-  init(): void {
-    this.loadFromLocalStorage();
-    if (!this.data.threads) {
-      this.data.threads = [];
-    }
-    if (!this.data.users) {
-      this.data.users = [];
+    } else {
+      this.data = { users: [], threads: [] };
     }
   }
 }
 
 const dbService = new DatabaseService();
-dbService.init();
 
 export default dbService;

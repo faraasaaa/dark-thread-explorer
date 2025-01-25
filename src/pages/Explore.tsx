@@ -4,15 +4,25 @@ import { LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ThreadList from "@/components/ThreadList";
-import { mockThreads } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import dbService from "@/lib/db.service";
 
 const Explore = () => {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   
-  const filteredThreads = mockThreads.filter(thread => 
+  const { data: threads = [], isLoading } = useQuery({
+    queryKey: ['threads'],
+    queryFn: () => dbService.getThreads(),
+  });
+
+  const filteredThreads = threads.filter(thread => 
     thread.content.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (isLoading) {
+    return <div className="min-h-screen p-4 flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">

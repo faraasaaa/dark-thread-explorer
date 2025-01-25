@@ -27,3 +27,10 @@ export interface Reply {
   likes?: number;
   likedBy?: string[];
 }
+
+export interface User {
+  id: string;
+  email: string;
+  password: string;
+  username: string;
+}

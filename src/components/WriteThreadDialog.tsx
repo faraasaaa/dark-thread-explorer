@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -12,18 +13,26 @@ import { Thread } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import dbService from "@/lib/db.service";
 import { useQueryClient } from "@tanstack/react-query";
+import { ImagePlus } from "lucide-react";
 
-interface WriteThreadDialogProps {
-  threads: Thread[];
-  setThreads: (threads: Thread[]) => void;
-}
-
-const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
+const WriteThreadDialog = () => {
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -35,19 +44,31 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
       return;
     }
 
+    const currentUser = dbService.getCurrentUser();
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Please log in to post.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newThread = {
         content,
-        author: "You",
+        author: currentUser.username,
         likes: 0,
         timestamp: new Date().toISOString(),
         comments: [],
         likedBy: [],
+        imageUrl: imageUrl || undefined,
       };
 
       await dbService.createThread(newThread);
       setContent("");
+      setImageUrl("");
       setIsOpen(false);
       queryClient.invalidateQueries({ queryKey: ['threads'] });
       
@@ -74,6 +95,7 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Write a new thread</DialogTitle>
+          <DialogDescription>Share your thoughts with the world</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
           <Textarea
@@ -82,6 +104,34 @@ const WriteThreadDialog = ({ threads }: WriteThreadDialogProps) => {
             onChange={(e) => setContent(e.target.value)}
             className="min-h-[100px] resize-none"
           />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="relative"
+              onClick={() => document.getElementById('image-upload')?.click()}
+            >
+              <ImagePlus className="h-4 w-4" />
+              <input
+                type="file"
+                id="image-upload"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </Button>
+            {imageUrl && (
+              <span className="text-sm text-muted-foreground">Image selected</span>
+            )}
+          </div>
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt="Preview"
+              className="w-full h-48 object-cover rounded-md"
+            />
+          )}
           <Button 
             onClick={handleSubmit} 
             className="w-full"
