@@ -70,13 +70,14 @@ class DatabaseService {
 
     if (!thread.likedBy) thread.likedBy = [];
     
+    // Check if user has already liked this thread
     if (thread.likedBy.includes(userId)) {
-      thread.likedBy = thread.likedBy.filter((id) => id !== userId);
-      thread.likes--;
-    } else {
-      thread.likedBy.push(userId);
-      thread.likes++;
+      return thread; // Return without making changes if already liked
     }
+    
+    thread.likedBy.push(userId);
+    thread.likes++;
+    
     this.saveToLocalStorage();
     return thread;
   }
