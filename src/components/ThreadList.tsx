@@ -32,20 +32,15 @@ const ThreadList = ({ threads }: ThreadListProps) => {
     const thread = threads.find(t => t.id === threadId);
     if (!thread) return;
 
-    // Check if user has already liked this thread
-    if (thread.likedBy.includes(currentUser.id)) {
-      toast({
-        description: "You've already liked this thread",
-        variant: "destructive",
-      });
-      return;
-    }
+    const isLiked = thread.likedBy.includes(currentUser.id);
 
     // Optimistically update the UI
     const optimisticThread = {
       ...thread,
-      likes: thread.likes + 1,
-      likedBy: [...thread.likedBy, currentUser.id]
+      likes: isLiked ? thread.likes - 1 : thread.likes + 1,
+      likedBy: isLiked 
+        ? thread.likedBy.filter(id => id !== currentUser.id)
+        : [...thread.likedBy, currentUser.id]
     };
 
     // Update the cache immediately
