@@ -16,11 +16,21 @@ const ThreadDetail = () => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const queryClient = useQueryClient();
+  const currentUser = dbService.getCurrentUser();
   
   const { data: thread, isLoading, error } = useQuery({
     queryKey: ['thread', id],
     queryFn: () => dbService.getThreadById(id || ''),
   });
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen p-4 flex flex-col items-center justify-center">
+        <h2 className="text-xl font-semibold mb-4">Please login to view and interact with threads</h2>
+        <Button onClick={() => navigate('/login')}>Login</Button>
+      </div>
+    );
+  }
   
   if (isLoading) {
     return <div className="min-h-screen p-4 flex items-center justify-center">Loading...</div>;
@@ -48,7 +58,7 @@ const ThreadDetail = () => {
     try {
       await dbService.addComment(thread.id, {
         content: newComment,
-        author: "Current User",
+        author: currentUser.username,
         timestamp: new Date().toISOString(),
       });
       
@@ -69,10 +79,10 @@ const ThreadDetail = () => {
 
   const handleLike = async () => {
     try {
-      await dbService.likeThread(thread.id, 'current-user');
+      await dbService.likeThread(thread.id, currentUser.id);
       queryClient.invalidateQueries({ queryKey: ['thread', id] });
       toast({
-        description: thread.likedBy.includes('current-user') 
+        description: thread.likedBy.includes(currentUser.id) 
           ? "Removed from your likes" 
           : "Added to your likes",
       });
@@ -87,7 +97,7 @@ const ThreadDetail = () => {
 
   const handleCommentLike = async (commentId: string) => {
     try {
-      await dbService.likeComment(thread.id, commentId, 'current-user');
+      await dbService.likeComment(thread.id, commentId, currentUser.id);
       queryClient.invalidateQueries({ queryKey: ['thread', id] });
     } catch (error) {
       toast({
@@ -111,7 +121,7 @@ const ThreadDetail = () => {
     try {
       await dbService.addReplyToComment(thread.id, commentId, {
         content: replyContent,
-        author: "Current User",
+        author: currentUser.username,
         timestamp: new Date().toISOString(),
       });
       
