@@ -78,28 +78,75 @@ const ThreadDetail = () => {
   };
 
   const handleLike = async () => {
+    if (thread.likedBy.includes(currentUser.id)) {
+      toast({
+        description: "You've already liked this thread",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Optimistic update
+    const optimisticThread = {
+      ...thread,
+      likes: thread.likes + 1,
+      likedBy: [...thread.likedBy, currentUser.id]
+    };
+
+    queryClient.setQueryData(['thread', id], optimisticThread);
+
     try {
       await dbService.likeThread(thread.id, currentUser.id);
       queryClient.invalidateQueries({ queryKey: ['thread', id] });
       toast({
-        description: thread.likedBy.includes(currentUser.id) 
-          ? "Removed from your likes" 
-          : "Added to your likes",
+        description: "Added to your likes",
       });
     } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['thread', id], thread);
       toast({
         title: "Error",
-        description: "Failed to update like",
+        description: "Failed to like thread",
         variant: "destructive",
       });
     }
   };
 
   const handleCommentLike = async (commentId: string) => {
+    const comment = thread.comments.find(c => c.id === commentId);
+    if (!comment) return;
+
+    if (comment.likedBy?.includes(currentUser.id)) {
+      toast({
+        description: "You've already liked this comment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Optimistic update for comment like
+    const optimisticThread = {
+      ...thread,
+      comments: thread.comments.map(c => {
+        if (c.id === commentId) {
+          return {
+            ...c,
+            likes: (c.likes || 0) + 1,
+            likedBy: [...(c.likedBy || []), currentUser.id]
+          };
+        }
+        return c;
+      })
+    };
+
+    queryClient.setQueryData(['thread', id], optimisticThread);
+
     try {
       await dbService.likeComment(thread.id, commentId, currentUser.id);
       queryClient.invalidateQueries({ queryKey: ['thread', id] });
     } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['thread', id], thread);
       toast({
         title: "Error",
         description: "Failed to like comment",
