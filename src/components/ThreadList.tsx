@@ -28,10 +28,33 @@ const ThreadList = ({ threads }: ThreadListProps) => {
       return;
     }
 
+    // Get the current thread
+    const thread = threads.find(t => t.id === threadId);
+    if (!thread) return;
+
+    // Optimistically update the UI
+    const isLiked = thread.likedBy.includes(currentUser.id);
+    const optimisticThread = {
+      ...thread,
+      likes: isLiked ? thread.likes - 1 : thread.likes + 1,
+      likedBy: isLiked 
+        ? thread.likedBy.filter(id => id !== currentUser.id)
+        : [...thread.likedBy, currentUser.id]
+    };
+
+    // Update the cache immediately
+    queryClient.setQueryData(['threads'], (old: Thread[] = []) => 
+      old.map(t => t.id === threadId ? optimisticThread : t)
+    );
+
     try {
       await dbService.likeThread(threadId, currentUser.id);
-      queryClient.invalidateQueries({ queryKey: ['threads'] });
     } catch (error) {
+      // Revert on error
+      queryClient.setQueryData(['threads'], (old: Thread[] = []) => 
+        old.map(t => t.id === threadId ? thread : t)
+      );
+      
       toast({
         title: "Error",
         description: "Failed to like the thread",
