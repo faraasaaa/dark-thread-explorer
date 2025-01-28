@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Thread } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
+import MobileNav from "@/components/MobileNav";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -37,7 +38,8 @@ const Dashboard = () => {
   };
 
   const filteredThreads = threads.filter(thread => 
-    thread.content.toLowerCase().includes(search.toLowerCase())
+    thread.content.toLowerCase().includes(search.toLowerCase()) ||
+    thread.author.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalLikes = threads.reduce((acc, thread) => acc + thread.likes, 0);
@@ -51,40 +53,60 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <Input
-            placeholder="Search threads..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:max-w-xs"
-          />
-          <Button 
-            onClick={() => navigate("/explore")}
-            className="w-full sm:w-auto"
-          >
-            Explore
-          </Button>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <WriteThreadDialog onThreadCreated={() => refetch()} />
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
-          <div className="glass-card px-4 py-2 rounded-lg w-full sm:w-auto text-center">
-            <span className="text-sm text-gray-400">Total Likes:</span>
-            <span className="ml-2 font-bold">{totalLikes}</span>
+    <>
+      <MobileNav 
+        totalLikes={totalLikes}
+        onLogout={handleLogout}
+        onSearch={setSearch}
+        searchValue={search}
+      />
+      
+      <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
+        <div className="flex flex-col gap-4">
+          <div className="hidden sm:flex items-center gap-4">
+            <Input
+              placeholder="Search threads..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full sm:max-w-xs"
+            />
+            <Button 
+              onClick={() => navigate("/explore")}
+              className="w-full sm:w-auto"
+            >
+              Explore
+            </Button>
+          </div>
+          <div className="hidden sm:flex items-center gap-4">
+            <WriteThreadDialog onThreadCreated={() => refetch()} />
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+            <div className="glass-card px-4 py-2 rounded-lg">
+              <span className="text-sm text-gray-400">Total Likes:</span>
+              <span className="ml-2 font-bold">{totalLikes}</span>
+            </div>
+          </div>
+          <div className="block sm:hidden">
+            <WriteThreadDialog onThreadCreated={() => refetch()} />
+          </div>
+          <div className="block sm:hidden">
+            <Button 
+              onClick={() => navigate("/explore")}
+              className="w-full"
+            >
+              Explore
+            </Button>
           </div>
         </div>
+        <ThreadList threads={filteredThreads} />
       </div>
-      <ThreadList threads={filteredThreads} />
-    </div>
+    </>
   );
 };
 
