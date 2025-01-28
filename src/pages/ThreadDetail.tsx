@@ -2,9 +2,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Heart, ArrowLeft, MessageCircle, Trash2 } from "lucide-react";
-import { Comment } from "@/lib/types";
+import { Thread, Comment } from "@/lib/types"; // Added Thread import here
 import dbService from "@/lib/db.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
