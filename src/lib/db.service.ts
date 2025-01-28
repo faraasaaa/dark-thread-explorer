@@ -20,13 +20,26 @@ class DatabaseService {
     return user || null;
   }
 
-  async signup(email: string, password: string, username: string): Promise<User> {
+  async signup(email: string, password: string, username: string): Promise<User | null> {
+    // Check if email already exists
+    const existingEmail = this.data.users.find(u => u.email === email);
+    if (existingEmail) {
+      throw new Error("Email already registered");
+    }
+
+    // Check if username already exists
+    const existingUsername = this.data.users.find(u => u.username === username);
+    if (existingUsername) {
+      throw new Error("Username already taken");
+    }
+
     const newUser: User = {
       id: Date.now().toString(),
       email,
       password,
       username,
     };
+
     if (!this.data.users) this.data.users = [];
     this.data.users.push(newUser);
     this.saveToLocalStorage();
@@ -45,10 +58,12 @@ class DatabaseService {
 
   // Thread operations
   async getThreads(): Promise<Thread[]> {
+    this.loadFromLocalStorage(); // Refresh data before returning
     return this.data.threads || [];
   }
 
   async getThreadById(id: string): Promise<Thread | null> {
+    this.loadFromLocalStorage(); // Refresh data before returning
     const thread = this.data.threads.find((t) => t.id === id);
     return thread || null;
   }
@@ -153,7 +168,10 @@ class DatabaseService {
     if (savedData) {
       this.data = JSON.parse(savedData);
     } else {
-      this.data = { users: [], threads: [] };
+      // Initialize with default data from db.json if no data exists
+      const defaultData = require('./db.json');
+      this.data = defaultData;
+      this.saveToLocalStorage();
     }
   }
 }
