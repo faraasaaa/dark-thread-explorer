@@ -45,11 +45,19 @@ const Dashboard = () => {
   const totalLikes = threads.reduce((acc, thread) => acc + thread.likes, 0);
 
   if (isLoading) {
-    return <div className="min-h-screen p-4 flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="min-h-screen p-4 flex items-center justify-center">Error loading threads</div>;
+    return (
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="text-destructive">Error loading threads</div>
+      </div>
+    );
   }
 
   return (
@@ -61,50 +69,51 @@ const Dashboard = () => {
         searchValue={search}
       />
       
-      <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
-        <div className="flex flex-col gap-4">
-          <div className="hidden sm:flex items-center gap-4">
+      <div className="min-h-screen max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {/* Desktop Header */}
+        <div className="hidden sm:flex flex-col gap-4">
+          <div className="flex items-center gap-4">
             <Input
               placeholder="Search threads..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:max-w-xs"
+              className="max-w-xs"
             />
             <Button 
               onClick={() => navigate("/explore")}
-              className="w-full sm:w-auto"
+              variant="outline"
             >
               Explore
             </Button>
           </div>
-          <div className="hidden sm:flex items-center gap-4">
-            <WriteThreadDialog onThreadCreated={() => refetch()} />
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <WriteThreadDialog onThreadCreated={() => refetch()} />
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
             <div className="glass-card px-4 py-2 rounded-lg">
-              <span className="text-sm text-gray-400">Total Likes:</span>
+              <span className="text-sm text-muted-foreground">Total Likes:</span>
               <span className="ml-2 font-bold">{totalLikes}</span>
             </div>
           </div>
-          <div className="block sm:hidden">
-            <WriteThreadDialog onThreadCreated={() => refetch()} />
-          </div>
-          <div className="block sm:hidden">
-            <Button 
-              onClick={() => navigate("/explore")}
-              className="w-full"
-            >
-              Explore
-            </Button>
-          </div>
         </div>
-        <ThreadList threads={filteredThreads} />
+
+        {/* Mobile Write Button */}
+        <div className="sm:hidden">
+          <WriteThreadDialog onThreadCreated={() => refetch()} />
+        </div>
+
+        {/* Thread List */}
+        <div className="pb-20 sm:pb-0">
+          <ThreadList threads={filteredThreads} />
+        </div>
       </div>
     </>
   );

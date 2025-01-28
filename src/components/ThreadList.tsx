@@ -66,54 +66,70 @@ const ThreadList = ({ threads }: ThreadListProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {threads.map((thread) => (
         <div 
           key={thread.id} 
-          className="glass-card p-4 rounded-lg hover:bg-secondary/10 transition-colors cursor-pointer hover-effect"
+          className="glass-card rounded-xl hover:bg-secondary/10 transition-colors cursor-pointer hover-effect overflow-hidden"
           onClick={() => navigate(`/thread/${thread.id}`)}
         >
-          <div className="flex flex-col gap-4">
-            <div>
+          <div className="flex flex-col">
+            {/* Author and timestamp header */}
+            <div className="p-4 pb-2 flex items-center justify-between border-b border-white/10">
               <h3 className="font-semibold text-sm sm:text-base">{thread.author}</h3>
-              <p className="text-gray-400 mt-1 text-sm sm:text-base break-words">{thread.content}</p>
+              <span className="text-xs text-muted-foreground">
+                {new Date(thread.timestamp).toLocaleDateString()}
+              </span>
+            </div>
+
+            {/* Content section */}
+            <div className="p-4 space-y-3">
+              <p className="text-sm sm:text-base break-words leading-relaxed">
+                {thread.content}
+              </p>
+              
               {thread.imageUrl && (
-                <div className="mt-2 max-w-full overflow-hidden rounded-lg">
+                <div className="rounded-lg overflow-hidden bg-black/20">
                   <img
                     src={thread.imageUrl}
                     alt="Thread image"
-                    className="w-full h-auto max-h-[300px] object-cover"
+                    className="w-full h-auto max-h-[300px] object-cover hover:opacity-90 transition-opacity"
                   />
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-4 sm:gap-6">
+
+            {/* Interaction buttons */}
+            <div className="px-4 py-3 bg-secondary/5 border-t border-white/10 flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className={`group flex items-center gap-1 sm:gap-2 hover:text-red-400 px-2 sm:px-4 ${
+                className={`group flex items-center gap-2 hover:text-red-400 px-3 h-8 ${
                   currentUser && thread.likedBy.includes(currentUser.id) ? 'text-red-400' : ''
                 }`}
                 onClick={(e) => handleLike(thread.id, e)}
               >
                 <Heart
-                  className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-200 group-hover:scale-110 ${
+                  className={`h-4 w-4 transition-all duration-200 group-hover:scale-110 ${
                     currentUser && thread.likedBy.includes(currentUser.id) ? 'fill-current' : ''
                   }`}
                 />
-                <span className="text-sm sm:text-base">{thread.likes}</span>
+                <span className="text-sm font-medium">{thread.likes}</span>
               </Button>
+
+              <div className="w-px h-4 bg-white/10 mx-1" />
+
               <Button
                 variant="ghost"
                 size="sm"
-                className="group flex items-center gap-1 sm:gap-2 hover:text-primary px-2 sm:px-4"
+                className="group flex items-center gap-2 hover:text-primary px-3 h-8"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/thread/${thread.id}`);
                 }}
               >
-                <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 transition-all duration-200 group-hover:scale-110" />
-                <span className="text-sm sm:text-base">{thread.comments.length}</span>
+                <MessageCircle className="h-4 w-4 transition-all duration-200 group-hover:scale-110" />
+                <span className="text-sm font-medium">{thread.comments.length}</span>
               </Button>
             </div>
           </div>
