@@ -28,7 +28,6 @@ const ThreadList = ({ threads }: ThreadListProps) => {
       return;
     }
 
-    // Get the current thread
     const thread = threads.find(t => t.id === threadId);
     if (!thread) return;
 
@@ -76,43 +75,45 @@ const ThreadList = ({ threads }: ThreadListProps) => {
         >
           <div className="flex flex-col gap-4">
             <div>
-              <h3 className="font-semibold">{thread.author}</h3>
-              <p className="text-gray-400 mt-1">{thread.content}</p>
+              <h3 className="font-semibold text-sm sm:text-base">{thread.author}</h3>
+              <p className="text-gray-400 mt-1 text-sm sm:text-base break-words">{thread.content}</p>
               {thread.imageUrl && (
-                <img
-                  src={thread.imageUrl}
-                  alt="Thread image"
-                  className="mt-2 rounded-lg max-h-96 object-cover"
-                />
+                <div className="mt-2 max-w-full overflow-hidden rounded-lg">
+                  <img
+                    src={thread.imageUrl}
+                    alt="Thread image"
+                    className="w-full h-auto max-h-[300px] object-cover"
+                  />
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <Button
                 variant="ghost"
                 size="sm"
-                className={`group flex items-center gap-2 hover:text-red-400 ${
+                className={`group flex items-center gap-1 sm:gap-2 hover:text-red-400 px-2 sm:px-4 ${
                   currentUser && thread.likedBy.includes(currentUser.id) ? 'text-red-400' : ''
                 }`}
                 onClick={(e) => handleLike(thread.id, e)}
               >
                 <Heart
-                  className={`h-5 w-5 transition-all duration-200 group-hover:scale-110 ${
+                  className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-200 group-hover:scale-110 ${
                     currentUser && thread.likedBy.includes(currentUser.id) ? 'fill-current' : ''
                   }`}
                 />
-                <span>{thread.likes}</span>
+                <span className="text-sm sm:text-base">{thread.likes}</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="group flex items-center gap-2 hover:text-primary"
+                className="group flex items-center gap-1 sm:gap-2 hover:text-primary px-2 sm:px-4"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/thread/${thread.id}`);
                 }}
               >
-                <MessageCircle className="h-5 w-5 transition-all duration-200 group-hover:scale-110" />
-                <span>{thread.comments.length}</span>
+                <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 transition-all duration-200 group-hover:scale-110" />
+                <span className="text-sm sm:text-base">{thread.comments.length}</span>
               </Button>
             </div>
           </div>
