@@ -68,6 +68,18 @@ class DatabaseService {
     return thread || null;
   }
 
+  async deleteThread(threadId: string, userId: string): Promise<boolean> {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+
+    const thread = this.data.threads.find(t => t.id === threadId);
+    if (!thread || thread.author !== user.username) return false;
+
+    this.data.threads = this.data.threads.filter(t => t.id !== threadId);
+    this.saveToLocalStorage();
+    return true;
+  }
+
   async createThread(thread: Omit<Thread, 'id'>): Promise<Thread> {
     const newThread: Thread = {
       ...thread,

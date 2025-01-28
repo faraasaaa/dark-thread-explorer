@@ -1,8 +1,8 @@
 import { Thread } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import dbService from "@/lib/db.service";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -65,6 +65,45 @@ const ThreadList = ({ threads }: ThreadListProps) => {
     }
   };
 
+  const handleDelete = async (threadId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Please log in to delete threads",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const success = await dbService.deleteThread(threadId, currentUser.id);
+      if (success) {
+        // Update the cache by removing the deleted thread
+        queryClient.setQueryData(['threads'], (old: Thread[] = []) => 
+          old.filter(t => t.id !== threadId)
+        );
+        
+        toast({
+          description: "Thread deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "You can only delete your own threads",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the thread",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {threads.map((thread) => (
@@ -77,9 +116,21 @@ const ThreadList = ({ threads }: ThreadListProps) => {
             {/* Author and timestamp header */}
             <div className="p-4 pb-2 flex items-center justify-between border-b border-white/10">
               <h3 className="font-semibold text-sm sm:text-base">{thread.author}</h3>
-              <span className="text-xs text-muted-foreground">
-                {new Date(thread.timestamp).toLocaleDateString()}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {new Date(thread.timestamp).toLocaleDateString()}
+                </span>
+                {currentUser && thread.author === currentUser.username && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => handleDelete(thread.id, e)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Content section */}

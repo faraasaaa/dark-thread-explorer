@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { Heart, ArrowLeft, MessageCircle } from "lucide-react";
+import { Heart, ArrowLeft, MessageCircle, Trash2 } from "lucide-react";
 import { Comment } from "@/lib/types";
 import dbService from "@/lib/db.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,37 @@ const ThreadDetail = () => {
     queryKey: ['thread', id],
     queryFn: () => dbService.getThreadById(id || ''),
   });
+
+  const handleDelete = async () => {
+    if (!currentUser || !thread) return;
+
+    try {
+      const success = await dbService.deleteThread(thread.id, currentUser.id);
+      if (success) {
+        // Update the threads cache by removing the deleted thread
+        queryClient.setQueryData(['threads'], (old: Thread[] = []) => 
+          old.filter(t => t.id !== thread.id)
+        );
+        
+        toast({
+          description: "Thread deleted successfully",
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Error",
+          description: "You can only delete your own threads",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the thread",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -190,14 +221,28 @@ const ThreadDetail = () => {
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
-      <Button 
-        variant="ghost" 
-        className="mb-6 hover:bg-secondary"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          className="mb-6 hover:bg-secondary"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        
+        {currentUser && thread?.author === currentUser.username && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="mb-6"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Thread
+          </Button>
+        )}
+      </div>
 
       <div className="glass-card p-6 rounded-lg space-y-4">
         <div className="flex items-start justify-between">
