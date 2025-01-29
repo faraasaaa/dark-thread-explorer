@@ -1,5 +1,5 @@
 import jsonDbService from './jsonDb.service';
-import { Thread, User } from './types';
+import { Thread, User, Comment, Reply } from './types';
 
 class MongoDBService {
   async findUser(email: string, password: string): Promise<User | null> {
