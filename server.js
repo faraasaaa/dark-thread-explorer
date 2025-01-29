@@ -5,24 +5,54 @@ const cors = require('cors');
 const app = express();
 const port = 3001;
 
-app.use(cors());
+// Enhanced CORS configuration
+app.use(cors({
+  origin: '*', // In production, replace with your actual frontend domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 const uri = "mongodb+srv://minecraftsus145:minecraftsus145@cluster0.c17ut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const client = new MongoClient(uri);
+const client = new MongoClient(uri, {
+  connectTimeoutMS: 5000,
+  socketTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 5000,
+  retryWrites: true,
+  retryReads: true
+});
+
+let isConnected = false;
 
 async function connectToMongo() {
   try {
-    await client.connect();
-    console.log('Connected to MongoDB');
+    if (!isConnected) {
+      await client.connect();
+      isConnected = true;
+      console.log('Connected to MongoDB');
+    }
   } catch (error) {
     console.error('MongoDB connection error:', error);
+    isConnected = false;
+    // Attempt to reconnect after 5 seconds
+    setTimeout(connectToMongo, 5000);
   }
 }
 
-connectToMongo();
+// Middleware to ensure database connection
+app.use(async (req, res, next) => {
+  try {
+    if (!isConnected) {
+      await connectToMongo();
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Database connection error' });
+  }
+});
 
-// User routes
 app.post('/api/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -232,6 +262,34 @@ app.post('/api/threads/:threadId/comments/:commentId/replies', async (req, res) 
   }
 });
 
-app.listen(port, () => {
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message 
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', dbConnected: isConnected });
+});
+
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  connectToMongo();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(async () => {
+    console.log('HTTP server closed');
+    if (isConnected) {
+      await client.close();
+      console.log('MongoDB connection closed');
+    }
+    process.exit(0);
+  });
 });
