@@ -1,4 +1,5 @@
 import { Thread, Comment, User, Reply } from './types';
+import defaultData from './db.json';
 
 class DatabaseService {
   private data: {
@@ -7,7 +8,18 @@ class DatabaseService {
   };
 
   constructor() {
-    this.loadFromLocalStorage();
+    this.loadFromFile();
+  }
+
+  private loadFromFile(): void {
+    // Initialize with default data from db.json
+    this.data = defaultData;
+  }
+
+  private saveToFile(): void {
+    // In a real application, this would write to a JSON file
+    // For now, we'll use sessionStorage to persist data across page refreshes
+    sessionStorage.setItem('threadApp', JSON.stringify(this.data));
   }
 
   async login(email: string, password: string): Promise<User | null> {
@@ -15,19 +27,17 @@ class DatabaseService {
       (u) => u.email === email && u.password === password
     );
     if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
     }
     return user || null;
   }
 
   async signup(email: string, password: string, username: string): Promise<User | null> {
-    // Check if email already exists
     const existingEmail = this.data.users.find(u => u.email === email);
     if (existingEmail) {
       throw new Error("Email already registered");
     }
 
-    // Check if username already exists
     const existingUsername = this.data.users.find(u => u.username === username);
     if (existingUsername) {
       throw new Error("Username already taken");
@@ -40,30 +50,26 @@ class DatabaseService {
       username,
     };
 
-    if (!this.data.users) this.data.users = [];
     this.data.users.push(newUser);
-    this.saveToLocalStorage();
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    this.saveToFile();
+    sessionStorage.setItem('currentUser', JSON.stringify(newUser));
     return newUser;
   }
 
   getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('currentUser');
+    const userStr = sessionStorage.getItem('currentUser');
     return userStr ? JSON.parse(userStr) : null;
   }
 
   logout(): void {
-    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('currentUser');
   }
 
-  // Thread operations
   async getThreads(): Promise<Thread[]> {
-    this.loadFromLocalStorage(); // Refresh data before returning
     return this.data.threads || [];
   }
 
   async getThreadById(id: string): Promise<Thread | null> {
-    this.loadFromLocalStorage(); // Refresh data before returning
     const thread = this.data.threads.find((t) => t.id === id);
     return thread || null;
   }
@@ -76,7 +82,7 @@ class DatabaseService {
     if (!thread || thread.author !== user.username) return false;
 
     this.data.threads = this.data.threads.filter(t => t.id !== threadId);
-    this.saveToLocalStorage();
+    this.saveToFile();
     return true;
   }
 
@@ -85,9 +91,8 @@ class DatabaseService {
       ...thread,
       id: Date.now().toString(),
     };
-    if (!this.data.threads) this.data.threads = [];
     this.data.threads.unshift(newThread);
-    this.saveToLocalStorage();
+    this.saveToFile();
     return newThread;
   }
 
@@ -106,7 +111,7 @@ class DatabaseService {
       thread.likes++;
     }
     
-    this.saveToLocalStorage();
+    this.saveToFile();
     return thread;
   }
 
@@ -124,7 +129,7 @@ class DatabaseService {
     
     if (!thread.comments) thread.comments = [];
     thread.comments.push(newComment);
-    this.saveToLocalStorage();
+    this.saveToFile();
     return thread;
   }
 
@@ -146,7 +151,7 @@ class DatabaseService {
       comment.likes++;
     }
 
-    this.saveToLocalStorage();
+    this.saveToFile();
     return thread;
   }
 
@@ -167,27 +172,10 @@ class DatabaseService {
     };
 
     comment.replies.push(newReply);
-    this.saveToLocalStorage();
+    this.saveToFile();
     return thread;
-  }
-
-  private saveToLocalStorage(): void {
-    localStorage.setItem('threadApp', JSON.stringify(this.data));
-  }
-
-  private loadFromLocalStorage(): void {
-    const savedData = localStorage.getItem('threadApp');
-    if (savedData) {
-      this.data = JSON.parse(savedData);
-    } else {
-      // Initialize with default data from db.json if no data exists
-      const defaultData = require('./db.json');
-      this.data = defaultData;
-      this.saveToLocalStorage();
-    }
   }
 }
 
 const dbService = new DatabaseService();
-
 export default dbService;
