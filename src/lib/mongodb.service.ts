@@ -1,163 +1,88 @@
-import { MongoClient, ObjectId } from 'mongodb';
 import { Thread, User, Comment, Reply } from './types';
 
-const uri = "mongodb+srv://minecraftsus145:minecraftsus145@cluster0.c17ut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const client = new MongoClient(uri);
+const API_URL = 'http://localhost:3001/api';
 
 class MongoDBService {
-  private client: MongoClient;
-  private db: any;
-
-  constructor() {
-    this.client = client;
-    this.connect();
-  }
-
-  private async connect() {
-    try {
-      await this.client.connect();
-      this.db = this.client.db('threadsApp');
-      console.log('Connected to MongoDB');
-    } catch (error) {
-      console.error('MongoDB connection error:', error);
-    }
-  }
-
   async findUser(email: string, password: string): Promise<User | null> {
-    const collection = this.db.collection('users');
-    return await collection.findOne({ email, password });
+    const response = await fetch(`${API_URL}/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    return response.ok ? await response.json() : null;
   }
 
   async createUser(user: Omit<User, 'id'>): Promise<User | null> {
-    const collection = this.db.collection('users');
-    const result = await collection.insertOne({
-      ...user,
-      id: new ObjectId().toString()
+    const response = await fetch(`${API_URL}/users/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user)
     });
-    return result.insertedId ? await collection.findOne({ _id: result.insertedId }) : null;
+    return response.ok ? await response.json() : null;
   }
 
   async getThreads(): Promise<Thread[]> {
-    const collection = this.db.collection('threads');
-    return await collection.find().sort({ timestamp: -1 }).toArray();
+    const response = await fetch(`${API_URL}/threads`);
+    return response.ok ? await response.json() : [];
   }
 
   async getThreadById(id: string): Promise<Thread | null> {
-    const collection = this.db.collection('threads');
-    return await collection.findOne({ id });
+    const response = await fetch(`${API_URL}/threads/${id}`);
+    return response.ok ? await response.json() : null;
   }
 
   async createThread(thread: Omit<Thread, 'id'>): Promise<Thread> {
-    const collection = this.db.collection('threads');
-    const newThread = {
-      ...thread,
-      id: new ObjectId().toString()
-    };
-    await collection.insertOne(newThread);
-    return newThread;
+    const response = await fetch(`${API_URL}/threads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(thread)
+    });
+    return await response.json();
   }
 
   async deleteThread(threadId: string, userId: string): Promise<boolean> {
-    const collection = this.db.collection('threads');
-    const thread = await collection.findOne({ id: threadId });
-    
-    if (!thread) return false;
-    
-    const user = await this.db.collection('users').findOne({ id: userId });
-    if (!user || thread.author !== user.username) return false;
-
-    const result = await collection.deleteOne({ id: threadId });
-    return result.deletedCount === 1;
+    const response = await fetch(`${API_URL}/threads/${threadId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    return response.ok;
   }
 
   async likeThread(threadId: string, userId: string): Promise<Thread | null> {
-    const collection = this.db.collection('threads');
-    const thread = await collection.findOne({ id: threadId });
-    
-    if (!thread) return null;
-
-    const likedBy = thread.likedBy || [];
-    const isLiked = likedBy.includes(userId);
-    
-    const updatedThread = await collection.findOneAndUpdate(
-      { id: threadId },
-      {
-        $set: {
-          likes: isLiked ? thread.likes - 1 : thread.likes + 1,
-          likedBy: isLiked 
-            ? likedBy.filter((id: string) => id !== userId)
-            : [...likedBy, userId]
-        }
-      },
-      { returnDocument: 'after' }
-    );
-
-    return updatedThread.value;
+    const response = await fetch(`${API_URL}/threads/${threadId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    return response.ok ? await response.json() : null;
   }
 
   async addComment(threadId: string, comment: Omit<Comment, 'id'>): Promise<Thread | null> {
-    const collection = this.db.collection('threads');
-    const newComment = {
-      ...comment,
-      id: new ObjectId().toString(),
-      likes: 0,
-      likedBy: [],
-      replies: []
-    };
-
-    const result = await collection.findOneAndUpdate(
-      { id: threadId },
-      { $push: { comments: newComment } },
-      { returnDocument: 'after' }
-    );
-
-    return result.value;
+    const response = await fetch(`${API_URL}/threads/${threadId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(comment)
+    });
+    return response.ok ? await response.json() : null;
   }
 
   async likeComment(threadId: string, commentId: string, userId: string): Promise<Thread | null> {
-    const collection = this.db.collection('threads');
-    const thread = await collection.findOne({ id: threadId });
-    
-    if (!thread) return null;
-
-    const comment = thread.comments.find((c: Comment) => c.id === commentId);
-    if (!comment) return null;
-
-    const likedBy = comment.likedBy || [];
-    const isLiked = likedBy.includes(userId);
-
-    const result = await collection.findOneAndUpdate(
-      { id: threadId, 'comments.id': commentId },
-      {
-        $set: {
-          'comments.$.likes': isLiked ? (comment.likes || 0) - 1 : (comment.likes || 0) + 1,
-          'comments.$.likedBy': isLiked 
-            ? likedBy.filter((id: string) => id !== userId)
-            : [...likedBy, userId]
-        }
-      },
-      { returnDocument: 'after' }
-    );
-
-    return result.value;
+    const response = await fetch(`${API_URL}/threads/${threadId}/comments/${commentId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    return response.ok ? await response.json() : null;
   }
 
   async addReplyToComment(threadId: string, commentId: string, reply: Omit<Reply, 'id'>): Promise<Thread | null> {
-    const collection = this.db.collection('threads');
-    const newReply = {
-      ...reply,
-      id: new ObjectId().toString(),
-      likes: 0,
-      likedBy: []
-    };
-
-    const result = await collection.findOneAndUpdate(
-      { id: threadId, 'comments.id': commentId },
-      { $push: { 'comments.$.replies': newReply } },
-      { returnDocument: 'after' }
-    );
-
-    return result.value;
+    const response = await fetch(`${API_URL}/threads/${threadId}/comments/${commentId}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reply)
+    });
+    return response.ok ? await response.json() : null;
   }
 }
 
