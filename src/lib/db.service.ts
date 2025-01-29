@@ -59,6 +59,10 @@ class DatabaseService {
   async likeComment(threadId: string, commentId: string, userId: string): Promise<Thread | null> {
     return await mongoDBService.likeComment(threadId, commentId, userId);
   }
+
+  async addReplyToComment(threadId: string, commentId: string, reply: Omit<Reply, 'id'>): Promise<Thread | null> {
+    return await mongoDBService.addReplyToComment(threadId, commentId, reply);
+  }
 }
 
 const dbService = new DatabaseService();

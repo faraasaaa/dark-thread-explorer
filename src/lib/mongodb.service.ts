@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { Thread, User, Comment } from './types';
+import { Thread, User, Comment, Reply } from './types';
 
 const uri = "mongodb+srv://minecraftsus145:minecraftsus145@cluster0.c17ut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
@@ -136,6 +136,24 @@ class MongoDBService {
             : [...likedBy, userId]
         }
       },
+      { returnDocument: 'after' }
+    );
+
+    return result.value;
+  }
+
+  async addReplyToComment(threadId: string, commentId: string, reply: Omit<Reply, 'id'>): Promise<Thread | null> {
+    const collection = this.db.collection('threads');
+    const newReply = {
+      ...reply,
+      id: new ObjectId().toString(),
+      likes: 0,
+      likedBy: []
+    };
+
+    const result = await collection.findOneAndUpdate(
+      { id: threadId, 'comments.id': commentId },
+      { $push: { 'comments.$.replies': newReply } },
       { returnDocument: 'after' }
     );
 
