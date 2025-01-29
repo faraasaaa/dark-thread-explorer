@@ -3,11 +3,12 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import dbService from "@/lib/db.service";
+import { supabase } from "@/lib/supabase";
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -18,18 +19,48 @@ const SignUp = () => {
     e.preventDefault();
     if (formData.username && formData.email && formData.password) {
       try {
-        await dbService.signup(formData.email, formData.password, formData.username);
+        setIsLoading(true);
+        
+        // Sign up with Supabase
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              username: formData.username,
+            }
+          }
+        });
+
+        if (signUpError) throw signUpError;
+
+        // Create a profile in the public.profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authData.user?.id,
+              username: formData.username,
+              email: formData.email,
+            }
+          ]);
+
+        if (profileError) throw profileError;
+
         toast({
           title: "Account created!",
-          description: "Welcome to Threads.",
+          description: "Please check your email to verify your account.",
         });
-        navigate("/dashboard");
-      } catch (error) {
+        
+        navigate("/login");
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: "Failed to create account. Please try again.",
+          description: error.message || "Failed to create account. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -45,6 +76,7 @@ const SignUp = () => {
               placeholder="Choose a username"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -54,6 +86,7 @@ const SignUp = () => {
               placeholder="Enter your email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -63,10 +96,11 @@ const SignUp = () => {
               placeholder="Create a password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              disabled={isLoading}
             />
           </div>
-          <Button type="submit" className="w-full hover-effect">
-            Sign Up
+          <Button type="submit" className="w-full hover-effect" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
         <p className="text-sm text-center text-gray-400">
@@ -74,6 +108,7 @@ const SignUp = () => {
           <button
             onClick={() => navigate("/login")}
             className="text-primary hover:underline"
+            disabled={isLoading}
           >
             Login
           </button>
